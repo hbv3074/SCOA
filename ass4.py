@@ -1,14 +1,23 @@
 import numpy as np
+import pandas as pd
 import random
-from sklearn.datasets import load_iris
 from sklearn.model_selection import cross_val_score
 from sklearn.tree import DecisionTreeClassifier
 
+# -----------------------------------
 # Load dataset
-iris = load_iris()
-X, y = iris.data, iris.target
+# -----------------------------------
+iris = pd.read_csv("SCOA_A4.csv")
+# print(iris.head())
+# print(iris.describe())
 
-# --- Genetic Algorithm Setup ---
+# Extract features and target
+X = iris.drop(columns=["species"]).values
+y = pd.Categorical(iris["species"]).codes   # convert species → numeric classes
+
+# -----------------------------------
+# Genetic Algorithm Setup
+# -----------------------------------
 POP_SIZE = 20      # number of individuals
 N_GENERATIONS = 10 # iterations
 MUTATION_RATE = 0.2
@@ -19,8 +28,10 @@ def create_chromosome():
 
 def fitness(chromosome):
     max_depth, min_samples_split = chromosome
-    model = DecisionTreeClassifier(max_depth=max_depth,
-                                   min_samples_split=min_samples_split)
+    model = DecisionTreeClassifier(
+        max_depth=max_depth,
+        min_samples_split=min_samples_split
+    )
     scores = cross_val_score(model, X, y, cv=5)
     return scores.mean()
 
@@ -41,7 +52,9 @@ def mutate(chromosome):
         chromosome[1] = random.randint(2, 10)
     return chromosome
 
-# --- Run GA ---
+# -----------------------------------
+# Run Genetic Algorithm
+# -----------------------------------
 population = [create_chromosome() for _ in range(POP_SIZE)]
 
 for gen in range(N_GENERATIONS):
@@ -50,6 +63,7 @@ for gen in range(N_GENERATIONS):
 
     new_population = []
     parents = selection(population, fitnesses)
+
     for _ in range(POP_SIZE // 2):
         child1, child2 = crossover(parents[0], parents[1])
         new_population.append(mutate(child1))
@@ -57,8 +71,11 @@ for gen in range(N_GENERATIONS):
 
     population = new_population
 
-# Best result
+# -----------------------------------
+# Best Result
+# -----------------------------------
 fitnesses = [fitness(chromo) for chromo in population]
 best_idx = np.argmax(fitnesses)
-print("Best Hyperparameters:", population[best_idx])
+
+print("\nBest Hyperparameters:", population[best_idx])
 print("Best Accuracy:", fitnesses[best_idx])
